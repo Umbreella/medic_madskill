@@ -1,9 +1,12 @@
+import re
 from datetime import datetime
 
+from django.conf import settings
 from django.contrib.auth.base_user import BaseUserManager
 from django.contrib.auth.models import AbstractUser
 from django.db import models
 from django.utils import timezone
+from setuptools._entry_points import _
 
 
 def get_default_date():
@@ -41,6 +44,35 @@ class CustomUser(AbstractUser):
 
     objects = CustomUserManager()
 
+    def save(self, *args, **kwargs):
+        self.full_clean()
+
+        if self.id and self.is_superuser:
+            return None
+
+        current_password = self.password
+        hashed_password_pattern = self.__get_hashed_pattern()
+
+        if not re.fullmatch(hashed_password_pattern, current_password):
+            self.set_password(current_password)
+
+        super().save(*args, **kwargs)
+
+    def __get_hashed_pattern(self):
+        current_hash_algorithm = settings.PASSWORD_HASHERS[0]
+
+        if 'PBKDF2PasswordHasher' in current_hash_algorithm:
+            return r'\w+[$]\d+[$]\w+[$].+'
+
+        if 'MD5PasswordHasher' in current_hash_algorithm:
+            return r'\w+[$]\w+[$].+'
+
+    def delete(self, *args, **kwargs):
+        if self.is_superuser:
+            return None
+
+        super().delete(*args, **kwargs)
+
 
 class Patient(models.Model):
     user = models.ForeignKey(CustomUser, on_delete=models.CASCADE)
@@ -51,6 +83,7 @@ class Patient(models.Model):
                                      help_text='Дата пождения')
     pol = models.CharField(max_length=64, help_text='Пол')
     image = models.ImageField(upload_to='patients/%Y/%m/%d/',
+                              default=None, null=True, blank=True,
                               help_text='Изображение профиля')
 
 
@@ -83,6 +116,9 @@ class Order(models.Model):
                                  help_text='Удобная дата')
     phone = models.CharField(max_length=12, help_text='Телефон для связи')
     comment = models.CharField(max_length=512, help_text='Комментарий')
+    audio_comment = models.FileField(upload_to='audio/%Y/%m/%d/',
+                                     default=True, null=True, blank=True,
+                                     help_text='Аудио комментарий')
 
 
 class PatientInOrder(models.Model):

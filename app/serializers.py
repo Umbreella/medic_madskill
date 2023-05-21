@@ -1,8 +1,15 @@
 from rest_framework import serializers
-from drf_extra_fields.fields import Base64ImageField
-from rest_framework.relations import PrimaryKeyRelatedField
+from drf_extra_fields.fields import Base64ImageField, Base64FileField
 
 from .models import *
+
+
+class UserSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = CustomUser
+        fields = (
+            'email', 'password',
+        )
 
 
 class NewSerializer(serializers.ModelSerializer):
@@ -77,6 +84,7 @@ class PatientInOrderSerializer(serializers.ModelSerializer):
 
 class OrderSerializer(serializers.ModelSerializer):
     patients = PatientInOrderSerializer(many=True)
+    audio_comment = Base64FileField(required=False)
 
     class Meta:
         model = Order

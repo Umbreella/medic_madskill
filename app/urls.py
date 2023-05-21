@@ -18,6 +18,7 @@ from django.urls import path, include
 from .views import *
 
 urlpatterns = [
+    path('signup/', UserModeViewSet.as_view(), name='signup'),
     path('news/', NewModelViewSet.as_view({
         'get': 'list',
     }), name='news'),
