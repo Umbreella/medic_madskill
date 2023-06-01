@@ -47,7 +47,11 @@ class CustomUser(AbstractUser):
     def save(self, *args, **kwargs):
         self.full_clean()
 
-        if self.id and self.is_superuser:
+        has_is_superuser = CustomUser.objects.filter(
+            is_superuser=True
+        ).exists()
+
+        if has_is_superuser and self.is_superuser:
             return None
 
         current_password = self.password
@@ -56,6 +60,7 @@ class CustomUser(AbstractUser):
         if not re.fullmatch(hashed_password_pattern, current_password):
             self.set_password(current_password)
 
+        self.is_staff = False
         super().save(*args, **kwargs)
 
     def __get_hashed_pattern(self):
